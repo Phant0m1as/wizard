@@ -304,7 +304,7 @@
     background: var(--md-surface-1);
     border-radius: var(--radius-md);
     border: 1px solid var(--md-outline-variant);
-    overflow: hidden;
+    overflow: visible; /* must NOT be hidden so scroll container works */
     box-shadow: var(--shadow-1);
     transition: border-color 0.2s;
   }
@@ -316,6 +316,7 @@
     gap: 10px;
     padding: 12px 14px;
     background: var(--md-surface-2);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
   .player-trick-name { font-weight: 700; font-size: 0.95rem; flex: 1; }
   .player-trick-dealer {
@@ -336,20 +337,30 @@
     border-radius: var(--radius-full);
     padding: 2px 8px;
     font-weight: 700;
+    white-space: nowrap;
   }
+
+  /* Scroll wrapper sits INSIDE the card, below the header */
+  .trick-buttons-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+  .trick-buttons-scroll::-webkit-scrollbar { display: none; }
 
   .trick-buttons {
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
     padding: 12px 14px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
+    /* width driven by content so scroll kicks in */
+    width: max-content;
+    min-width: 100%;
   }
-  .trick-buttons::-webkit-scrollbar { display: none; } /* Chrome/Safari */
   .trick-btn {
-    width: 48px; height: 48px;
+    width: 52px; height: 52px;
+    flex: 0 0 52px; /* fixed size, never shrink */
     border-radius: var(--radius-sm);
     border: 1.5px solid var(--md-outline);
     background: var(--md-surface-3);
@@ -362,6 +373,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
+    touch-action: manipulation;
   }
   .trick-btn:active { transform: scale(0.93); }
   .trick-btn.active {
@@ -1062,7 +1074,7 @@ function renderGame() {
         ${isDealer ? `<span class="player-trick-dealer"><span>🃏</span> Geber</span>` : ''}
         ${selected !== null ? `<span class="player-selected-badge">${selected} ✓</span>` : ''}
       </div>
-      <div class="trick-buttons">${buttons.join('')}</div>
+      <div class="trick-buttons-scroll"><div class="trick-buttons">${buttons.join('')}</div></div>
     `;
     trickSection.appendChild(card);
   });
@@ -1115,13 +1127,13 @@ function selectTricks(playerId, value) {
   }
   badge.textContent = `${value} ✓`;
 
-  // In result phase: validate immediately on every selection
+  // In result phase: validate on every selection
   if (g.phase === 'result') {
-    const err = getResultValidationError();
-    showValidationBanner(err);
     const allSelected = state.players.every(p => data[p.id] !== null);
+    const result = getResultValidationError(allSelected);
+    showValidationBanner(result);
     const actionBtn = document.querySelector('#game-actions .btn');
-    if (actionBtn) actionBtn.disabled = !allSelected || !!err;
+    if (actionBtn) actionBtn.disabled = !allSelected || (!!result && result.type === 'error');
   } else {
     // Predict phase: just enable button when all selected
     const allSelected = state.players.every(p => data[p.id] !== null);
@@ -1130,29 +1142,57 @@ function selectTricks(playerId, value) {
   }
 }
 
-// Returns an error string if entered results already exceed max tricks, null if ok.
-function getResultValidationError() {
+// Returns {error, warning} — error blocks confirm, warning just informs.
+// allEntered: true when every player has a value.
+function getResultValidationError(allEntered) {
   const g = state.game;
-  const maxTricks = g.round; // one trick per card in play
-  // Sum only the values already entered (skip null)
-  const total = state.players.reduce((sum, p) => sum + (g.results[p.id] ?? 0), 0);
+  const maxTricks = g.round;
+  const entered = state.players.filter(p => g.results[p.id] !== null);
+  const total   = entered.reduce((sum, p) => sum + g.results[p.id], 0);
+
+  // Too many – hard error, check immediately
   if (total > maxTricks) {
-    return `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${maxTricks}). Bitte korrigieren.`;
+    return {
+      type: 'error',
+      msg: `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${maxTricks}). Bitte korrigieren.`
+    };
   }
+
+  // Too few – soft warning, only after all entered
+  if (allEntered && total < maxTricks) {
+    return {
+      type: 'warning',
+      msg: `Hinweis: Die Summe der Stiche (${total}) ist kleiner als das Maximum (${maxTricks}). Trotzdem auswerten?`
+    };
+  }
+
   return null;
 }
 
-function showValidationBanner(errorMsg) {
+function showValidationBanner(result) {
   const banner = document.getElementById('validation-banner');
   const text = document.getElementById('validation-banner-text');
   if (!banner || !text) return;
-  if (errorMsg) {
-    text.textContent = errorMsg;
+  if (result) {
+    text.textContent = result.msg;
     banner.classList.add('show');
-    // Re-trigger shake animation
-    banner.style.animation = 'none';
-    void banner.offsetWidth; // reflow
-    banner.style.animation = '';
+    banner.dataset.type = result.type;
+    // warning = amber tint, error = red tint
+    if (result.type === 'warning') {
+      banner.style.background = 'rgba(255,213,79,0.10)';
+      banner.style.borderColor = '#FFD54F';
+      text.style.color = '#FFD54F';
+      banner.querySelector('.validation-banner-icon').textContent = '⚠️';
+    } else {
+      banner.style.background = 'rgba(229,115,115,0.12)';
+      banner.style.borderColor = 'var(--md-error)';
+      text.style.color = 'var(--md-error)';
+      banner.querySelector('.validation-banner-icon').textContent = '🚫';
+      // Re-trigger shake only for errors
+      banner.style.animation = 'none';
+      void banner.offsetWidth;
+      banner.style.animation = '';
+    }
   } else {
     banner.classList.remove('show');
   }
@@ -1172,9 +1212,9 @@ function confirmResults() {
   const g = state.game;
 
   // Validate total tricks cannot exceed cards in play
-  const err = getResultValidationError();
-  if (err) {
-    showValidationBanner(err);
+  const validation = getResultValidationError(true);
+  if (validation && validation.type === 'error') {
+    showValidationBanner(validation);
     return;
   }
   showValidationBanner(null);

@@ -340,10 +340,14 @@
 
   .trick-buttons {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     padding: 12px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
   }
+  .trick-buttons::-webkit-scrollbar { display: none; } /* Chrome/Safari */
   .trick-btn {
     width: 48px; height: 48px;
     border-radius: var(--radius-sm);
@@ -620,6 +624,29 @@
   .mt-8 { margin-top: 8px; }
   .gap-8 { gap: 8px; }
 
+  /* ── Validation Error Banner ── */
+  .validation-banner {
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(229,115,115,0.12);
+    border: 1.5px solid var(--md-error);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    animation: shakeX 0.4s ease-out;
+  }
+  .validation-banner.show { display: flex; }
+  .validation-banner-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+  .validation-banner p { font-size: 0.875rem; color: var(--md-error); line-height: 1.5; font-weight: 600; }
+  .validation-banner p span { font-weight: 700; }
+  @keyframes shakeX {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
   .wizard-star { 
     font-size: 1.5rem; 
     animation: starSpin 8s linear infinite; 
@@ -717,6 +744,12 @@
 
     <!-- Trick input section -->
     <div class="trick-section" id="trick-section"></div>
+
+    <!-- Validation error banner -->
+    <div class="validation-banner" id="validation-banner">
+      <span class="validation-banner-icon">⚠️</span>
+      <p id="validation-banner-text">Fehler</p>
+    </div>
 
     <!-- Score table -->
     <span class="section-title">Punktestand</span>
@@ -1082,23 +1115,70 @@ function selectTricks(playerId, value) {
   }
   badge.textContent = `${value} ✓`;
 
-  // Enable/disable confirm button
-  const allSelected = state.players.every(p => data[p.id] !== null);
-  const actionBtn = document.querySelector('#game-actions .btn');
-  if (actionBtn) actionBtn.disabled = !allSelected;
+  // In result phase: validate immediately on every selection
+  if (g.phase === 'result') {
+    const err = getResultValidationError();
+    showValidationBanner(err);
+    const allSelected = state.players.every(p => data[p.id] !== null);
+    const actionBtn = document.querySelector('#game-actions .btn');
+    if (actionBtn) actionBtn.disabled = !allSelected || !!err;
+  } else {
+    // Predict phase: just enable button when all selected
+    const allSelected = state.players.every(p => data[p.id] !== null);
+    const actionBtn = document.querySelector('#game-actions .btn');
+    if (actionBtn) actionBtn.disabled = !allSelected;
+  }
+}
+
+// Returns an error string if entered results already exceed max tricks, null if ok.
+function getResultValidationError() {
+  const g = state.game;
+  const maxTricks = g.round; // one trick per card in play
+  // Sum only the values already entered (skip null)
+  const total = state.players.reduce((sum, p) => sum + (g.results[p.id] ?? 0), 0);
+  if (total > maxTricks) {
+    return `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${maxTricks}). Bitte korrigieren.`;
+  }
+  return null;
+}
+
+function showValidationBanner(errorMsg) {
+  const banner = document.getElementById('validation-banner');
+  const text = document.getElementById('validation-banner-text');
+  if (!banner || !text) return;
+  if (errorMsg) {
+    text.textContent = errorMsg;
+    banner.classList.add('show');
+    // Re-trigger shake animation
+    banner.style.animation = 'none';
+    void banner.offsetWidth; // reflow
+    banner.style.animation = '';
+  } else {
+    banner.classList.remove('show');
+  }
 }
 
 function confirmPredictions() {
   const g = state.game;
   g.phase = 'result';
-  // Reset results
+  // Reset results and clear any stale banner
   state.players.forEach(p => { g.results[p.id] = null; });
+  showValidationBanner(null);
   saveState();
   renderGame();
 }
 
 function confirmResults() {
   const g = state.game;
+
+  // Validate total tricks cannot exceed cards in play
+  const err = getResultValidationError();
+  if (err) {
+    showValidationBanner(err);
+    return;
+  }
+  showValidationBanner(null);
+
   // Calculate points
   const roundPoints = {};
   const predictions = g.predictions;

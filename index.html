@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Wizard – Punktezähler</title>
+<title>Wizard Scorekeeper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -627,6 +627,43 @@
   .dialog-text { font-size: 0.875rem; color: var(--md-on-surface-variant); line-height: 1.5; margin-bottom: 24px; }
   .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+  .menu-lang-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+  }
+  .lang-toggle {
+    display: flex;
+    background: var(--md-surface-3);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    gap: 2px;
+  }
+  .lang-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--md-on-surface-variant);
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, color 0.15s;
+  }
+  .lang-btn.active {
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+  }
+  .lang-btn:not(.active):active {
+    background: rgba(226,192,122,0.15);
+    color: var(--md-primary);
+  }
+
   /* ── Scroll area for score table ── */
   .score-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -709,8 +746,32 @@
     border-color: var(--md-error);
     color: var(--md-error);
   }
-  .sum-badge.over .sum-icon { color: var(--md-error); }
-  .sum-badge.over .sum-max { color: var(--md-error); }
+  .lang-toggle {
+    display: flex;
+    align-items: center;
+    background: var(--md-surface-3);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    gap: 2px;
+  }
+  .lang-btn {
+    padding: 5px 14px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: transparent;
+    color: var(--md-on-surface-variant);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .lang-btn.active {
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+  }
 </style>
 </head>
 <body>
@@ -855,6 +916,19 @@
   <div class="menu-sheet">
     <div class="menu-sheet-handle"></div>
     <div class="menu-sheet-title">⚙️ Menü</div>
+
+    <!-- Language toggle -->
+    <div class="menu-lang-row">
+      <span class="menu-item-icon">🌐</span>
+      <span id="menu-lang-label" style="font-weight:600; font-size:0.95rem; flex:1;">Sprache</span>
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+
+    <div class="menu-divider"></div>
+
     <div class="menu-item" onclick="menuGoSetup()">
       <span class="menu-item-icon">🏠</span>
       Zurück zur Spielerverwaltung
@@ -865,7 +939,7 @@
       App zurücksetzen (LocalStorage löschen)
     </div>
     <div style="margin-top:16px;">
-      <button class="btn btn-tonal btn-full" onclick="closeMenu()">Schließen</button>
+      <button class="btn btn-tonal btn-full" id="menu-close-btn" onclick="closeMenu()">Schließen</button>
     </div>
   </div>
 </div>
@@ -876,7 +950,7 @@
     <div class="dialog-title" id="dialog-title">Bestätigen</div>
     <p class="dialog-text" id="dialog-text">Bist du sicher?</p>
     <div class="dialog-actions">
-      <button class="btn btn-tonal" onclick="closeDialog()">Abbrechen</button>
+      <button class="btn btn-tonal" id="dialog-cancel-btn" onclick="closeDialog()">Abbrechen</button>
       <button class="btn btn-danger" id="dialog-confirm-btn">Löschen</button>
     </div>
   </div>
@@ -886,6 +960,208 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ═══════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  de: {
+    // Top bar / menu
+    appTitle:          'Wizard Punktezähler',
+    menuTitle:         '⚙️ Menü',
+    menuGoSetup:       'Zurück zur Spielerverwaltung',
+    menuClear:         'App zurücksetzen (LocalStorage löschen)',
+    menuClose:         'Schließen',
+    menuLang:          'Sprache',
+
+    // Setup screen
+    newGame:           'Neues Spiel',
+    newGameSub:        '3 bis 6 Spieler hinzufügen',
+    sectionPlayers:    'Spieler',
+    addPlayer:         'Spieler hinzufügen',
+    infoText:          'Wizard wird mit 3–6 Spielern gespielt. Die Rundenzahl richtet sich nach der Spieleranzahl.',
+    startGame:         'Spiel starten',
+    noPlayersYet:      'Noch keine Spieler. Füge mindestens 3 hinzu.',
+    namePlaceholder:   'Name eingeben',
+    defaultPlayerName: 'Spieler',
+
+    // Game screen
+    roundLabel:        'Runde',
+    sectionScore:      'Punktestand',
+    dealer:            'Kartengeber',
+    phasePredict:      '🔮 Stiche vorhersagen',
+    phaseResult:       '✅ Erzielte Stiche eingeben',
+    btnConfirmPredict: 'Vorhersagen bestätigen',
+    btnConfirmResult:  'Runde auswerten',
+    cardDealer:        'Geber',
+    cardsInfo:         (n) => `${n} Karte${n !== 1 ? 'n' : ''} pro Spieler – ${n} mögliche${n !== 1 ? '' : 'r'} Stich${n !== 1 ? 'e' : ''}`,
+
+    // Validation
+    errTooMany:        (total, max) => `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${max}). Bitte korrigieren.`,
+    warnTooFew:        (total, max) => `Hinweis: Die Summe der Stiche (${total}) ist kleiner als das Maximum (${max}). Trotzdem auswerten?`,
+
+    // Results screen
+    gameOver:          'Spielende!',
+    gameOverSub:       'Endauswertung aller Runden',
+    sectionScoreboard: 'Punktetabelle',
+    btnNewGame:        'Neues Spiel (gleiche Spieler)',
+    btnChangePlayers:  'Spieler ändern',
+
+    // Dialogs
+    confirmTitle:      'Bestätigen',
+    confirmDefault:    'Bist du sicher?',
+    confirmDelete:     'Löschen',
+    confirmCancel:     'Abbrechen',
+    abortGameTitle:    'Spiel abbrechen?',
+    abortGameText:     'Das laufende Spiel wird beendet und du kommst zur Spielerverwaltung.',
+    clearTitle:        'App zurücksetzen?',
+    clearText:         'Alle Spielerdaten und Spielstände werden unwiderruflich gelöscht.',
+
+    // Toasts
+    toastReset:        'App zurückgesetzt',
+    toastMinPlayers:   'Mindestens 1 Spieler erforderlich',
+    toastNeedPlayers:  'Mindestens 3 Spieler benötigt!',
+
+    // Score table
+    roundCol:          'Rd.',
+  },
+  en: {
+    appTitle:          'Wizard Scorekeeper',
+    menuTitle:         '⚙️ Menu',
+    menuGoSetup:       'Back to Player Management',
+    menuClear:         'Reset App (Clear LocalStorage)',
+    menuClose:         'Close',
+    menuLang:          'Language',
+
+    newGame:           'New Game',
+    newGameSub:        'Add 3 to 6 players',
+    sectionPlayers:    'Players',
+    addPlayer:         'Add Player',
+    infoText:          'Wizard is played with 3–6 players. The number of rounds depends on the player count.',
+    startGame:         'Start Game',
+    noPlayersYet:      'No players yet. Add at least 3.',
+    namePlaceholder:   'Enter name',
+    defaultPlayerName: 'Player',
+
+    roundLabel:        'Round',
+    sectionScore:      'Score',
+    dealer:            'Dealer',
+    phasePredict:      '🔮 Predict Tricks',
+    phaseResult:       '✅ Enter Tricks Won',
+    btnConfirmPredict: 'Confirm Predictions',
+    btnConfirmResult:  'Evaluate Round',
+    cardDealer:        'Dealer',
+    cardsInfo:         (n) => `${n} card${n !== 1 ? 's' : ''} per player – ${n} possible trick${n !== 1 ? 's' : ''}`,
+
+    errTooMany:        (total, max) => `Total tricks (${total}) exceeds the maximum for this round (${max}). Please correct.`,
+    warnTooFew:        (total, max) => `Note: Total tricks (${total}) is less than the maximum (${max}). Evaluate anyway?`,
+
+    gameOver:          'Game Over!',
+    gameOverSub:       'Final standings',
+    sectionScoreboard: 'Score Table',
+    btnNewGame:        'New Game (same players)',
+    btnChangePlayers:  'Change Players',
+
+    confirmTitle:      'Confirm',
+    confirmDefault:    'Are you sure?',
+    confirmDelete:     'Delete',
+    confirmCancel:     'Cancel',
+    abortGameTitle:    'Abort Game?',
+    abortGameText:     'The current game will end and you will return to player management.',
+    clearTitle:        'Reset App?',
+    clearText:         'All player data and scores will be permanently deleted.',
+
+    toastReset:        'App reset',
+    toastMinPlayers:   'At least 1 player required',
+    toastNeedPlayers:  'At least 3 players required!',
+
+    roundCol:          'Rd.',
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// LANGUAGE
+// ═══════════════════════════════════════════════════════════
+const LANG_KEY = 'wizard_lang';
+let currentLang = 'de';
+
+function detectLang() {
+  // 1. LocalStorage preference wins
+  const saved = localStorage.getItem(LANG_KEY);
+  if (saved === 'de' || saved === 'en') return saved;
+  // 2. Browser language
+  const browserLang = (navigator.language || navigator.userLanguage || 'de').toLowerCase();
+  return browserLang.startsWith('de') ? 'de' : 'en';
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  document.documentElement.lang = lang;
+  applyStaticTranslations();
+  updateLangToggleUI();
+  // Re-render current screen
+  if (state.game) {
+    renderGame();
+  } else if (document.getElementById('screen-results').classList.contains('active')) {
+    renderResults();
+  } else {
+    renderSetup();
+  }
+}
+
+function t(key, ...args) {
+  const val = TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS['de'][key] ?? key;
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+// Apply translations to static HTML elements (those not re-rendered by JS)
+function applyStaticTranslations() {
+  document.title = t('appTitle') + ' – ' + (currentLang === 'de' ? 'Punktezähler' : 'Score Tracker');
+  // Setup screen static elements
+  qs('#screen-setup h1').textContent       = t('newGame');
+  qs('#screen-setup p').textContent        = t('newGameSub');
+  qs('#add-player-btn').lastChild.textContent = ' ' + t('addPlayer');
+  qs('#screen-setup .info-box p').textContent = t('infoText');
+  qs('#start-game-btn').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${t('startGame')}`;
+  // Results screen static elements
+  qs('#screen-results h1').textContent     = t('gameOver');
+  qs('#screen-results > div > p').textContent = t('gameOverSub');
+  // Results buttons
+  const resBtns = document.querySelectorAll('#screen-results .btn');
+  if (resBtns[0]) resBtns[0].innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.34"/></svg> ${t('btnNewGame')}`;
+  if (resBtns[1]) resBtns[1].innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${t('btnChangePlayers')}`;
+  // Game screen section titles
+  const sectionTitles = document.querySelectorAll('#screen-game .section-title');
+  if (sectionTitles[0]) sectionTitles[0].textContent = t('sectionScore');
+  // Menu
+  qs('.menu-sheet-title').textContent      = t('menuTitle');
+  qs('#menu-lang-label').textContent       = t('menuLang');
+  const menuItems = document.querySelectorAll('.menu-item');
+  if (menuItems[0]) menuItems[0].innerHTML = `<span class="menu-item-icon">🏠</span> ${t('menuGoSetup')}`;
+  if (menuItems[1]) menuItems[1].innerHTML = `<span class="menu-item-icon">🗑️</span> ${t('menuClear')}`;
+  qs('#menu-close-btn').textContent        = t('menuClose');
+  // Game round label
+  const roundLabel = document.getElementById('round-label-el');
+  if (roundLabel) roundLabel.textContent   = t('roundLabel');
+  // Dialog buttons
+  qs('#dialog-cancel-btn').textContent     = t('confirmCancel');
+  qs('#dialog-confirm-btn').textContent    = t('confirmDelete');
+  // Section titles on results
+  const resSections = document.querySelectorAll('#screen-results .section-title');
+  if (resSections[0]) resSections[0].textContent = t('sectionScoreboard');
+  // Setup section title
+  const setupSection = document.querySelector('#screen-setup .section-title');
+  if (setupSection) setupSection.textContent = t('sectionPlayers');
+}
+
+function updateLangToggleUI() {
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+  });
+}
+
+function qs(sel) { return document.querySelector(sel); }
+
 // ═══════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════
@@ -927,6 +1203,7 @@ function loadState() {
 }
 function clearStorage() {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(LANG_KEY);
   state = { players: [], game: null };
   saveState();
 }
@@ -954,7 +1231,7 @@ function renderSetup() {
 
   container.innerHTML = '';
   if (state.players.length === 0) {
-    container.innerHTML = '<p style="text-align:center;padding:20px 16px;color:var(--md-on-surface-variant);font-size:0.875rem;">Noch keine Spieler. Füge mindestens 3 hinzu.</p>';
+    container.innerHTML = `<p style="text-align:center;padding:20px 16px;color:var(--md-on-surface-variant);font-size:0.875rem;">${t('noPlayersYet')}</p>`;
   } else {
     state.players.forEach(p => {
       const div = document.createElement('div');
@@ -962,10 +1239,10 @@ function renderSetup() {
       div.innerHTML = `
         <div class="player-color-dot" style="background:${p.color}">${playerInitials(p.name)}</div>
         <input class="player-name-input" type="text" value="${escHtml(p.name)}" maxlength="18"
-          placeholder="Name eingeben"
+          placeholder="${t('namePlaceholder')}"
           onchange="renamePlayer('${p.id}', this.value)"
           oninput="renamePlayer('${p.id}', this.value)">
-        <button class="player-delete-btn" onclick="deletePlayer('${p.id}')" aria-label="Spieler löschen">
+        <button class="player-delete-btn" onclick="deletePlayer('${p.id}')" aria-label="${t('menuClear')}">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
             <path d="M9 6V4h6v2"/>
@@ -983,13 +1260,13 @@ function renderSetup() {
 function addPlayer() {
   if (state.players.length >= 6) return;
   const id = 'p_' + Date.now();
-  state.players.push({ id, name: `Spieler ${state.players.length + 1}`, color: nextColor() });
+  state.players.push({ id, name: `${t('defaultPlayerName')} ${state.players.length + 1}`, color: nextColor() });
   saveState();
   renderSetup();
 }
 
 function deletePlayer(id) {
-  if (state.players.length <= 1) { showToast('Mindestens 1 Spieler erforderlich'); return; }
+  if (state.players.length <= 1) { showToast(t('toastMinPlayers')); return; }
   state.players = state.players.filter(p => p.id !== id);
   saveState();
   renderSetup();
@@ -998,7 +1275,7 @@ function deletePlayer(id) {
 function renamePlayer(id, name) {
   const p = playerById(id);
   if (p) {
-    p.name = name || `Spieler`;
+    p.name = name || t('defaultPlayerName');
     // update initials dot live
     const items = document.querySelectorAll('.player-item');
     items.forEach(item => {
@@ -1028,7 +1305,7 @@ function hexToRgb(hex) {
 // ═══════════════════════════════════════════════════════════
 function startGame() {
   const n = state.players.length;
-  if (n < 3) { showToast('Mindestens 3 Spieler benötigt!'); return; }
+  if (n < 3) { showToast(t('toastNeedPlayers')); return; }
 
   const totalRounds = MAX_ROUNDS[n];
   const predictions = {};
@@ -1059,12 +1336,11 @@ function renderGame() {
 
   // Round header
   document.getElementById('round-display').textContent = `${g.round} / ${g.totalRounds}`;
-  document.getElementById('cards-display').textContent =
-    `${cardsThisRound} Karte${cardsThisRound !== 1 ? 'n' : ''} pro Spieler – ${cardsThisRound} mögliche${cardsThisRound !== 1 ? '' : 'r'} Stich${cardsThisRound !== 1 ? 'e' : ''}`;
+  document.getElementById('cards-display').textContent = t('cardsInfo', cardsThisRound);
 
   // Dealer
   const dealer = state.players[g.dealerIndex];
-  document.getElementById('dealer-name').textContent = `Kartengeber: ${dealer.name}`;
+  document.getElementById('dealer-name').textContent = `${t('dealer')}: ${dealer.name}`;
 
   // Step indicator
   const steps = document.getElementById('step-indicator');
@@ -1080,10 +1356,10 @@ function renderGame() {
   // Phase label
   const phaseLabel = document.getElementById('phase-label');
   if (g.phase === 'predict') {
-    phaseLabel.textContent = '🔮 Stiche vorhersagen';
+    phaseLabel.textContent = t('phasePredict');
     phaseLabel.className = 'phase-label phase-predict';
   } else {
-    phaseLabel.textContent = '✅ Erzielte Stiche eingeben';
+    phaseLabel.textContent = t('phaseResult');
     phaseLabel.className = 'phase-label phase-result';
   }
 
@@ -1115,7 +1391,7 @@ function renderGame() {
       <div class="player-trick-header">
         <div class="player-color-dot" style="background:${p.color};width:30px;height:30px;font-size:0.85rem;">${playerInitials(p.name)}</div>
         <span class="player-trick-name">${escHtml(p.name)}</span>
-        ${isDealer ? `<span class="player-trick-dealer"><span>🃏</span> Geber</span>` : ''}
+        ${isDealer ? `<span class="player-trick-dealer"><span>🃏</span> ${t('cardDealer')}</span>` : ''}
         ${selected !== null ? `<span class="player-selected-badge">${selected} ✓</span>` : ''}
       </div>
       <div class="trick-buttons-scroll"><div class="trick-buttons">${buttons.join('')}</div></div>
@@ -1134,13 +1410,13 @@ function renderGame() {
     actions.innerHTML = `
       <button class="btn btn-filled btn-full" onclick="confirmPredictions()" ${allSelected ? '' : 'disabled'}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Vorhersagen bestätigen
+        ${t('btnConfirmPredict')}
       </button>`;
   } else {
     actions.innerHTML = `
       <button class="btn btn-filled btn-full" onclick="confirmResults()" ${allSelected ? '' : 'disabled'}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Runde auswerten
+        ${t('btnConfirmResult')}
       </button>`;
   }
 }
@@ -1219,7 +1495,7 @@ function getResultValidationError(allEntered) {
   if (total > maxTricks) {
     return {
       type: 'error',
-      msg: `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${maxTricks}). Bitte korrigieren.`
+      msg: t('errTooMany', total, maxTricks)
     };
   }
 
@@ -1227,7 +1503,7 @@ function getResultValidationError(allEntered) {
   if (allEntered && total < maxTricks) {
     return {
       type: 'warning',
-      msg: `Hinweis: Die Summe der Stiche (${total}) ist kleiner als das Maximum (${maxTricks}). Trotzdem auswerten?`
+      msg: t('warnTooFew', total, maxTricks)
     };
   }
 
@@ -1340,7 +1616,7 @@ function renderScoreTable(tableId = 'score-table', headId = 'score-table-head', 
   if (!head || !body) return;
 
   // Header
-  head.innerHTML = `<th class="round-col" style="text-align:left;padding-left:8px;">Rd.</th>` +
+  head.innerHTML = `<th class="round-col" style="text-align:left;padding-left:8px;">${t('roundCol')}</th>` +
     state.players.map(p => `
       <th class="player-col">
         <div class="player-col-header">
@@ -1447,8 +1723,8 @@ function menuGoSetup() {
   closeMenu();
   if (state.game) {
     showConfirmDialog(
-      'Spiel abbrechen?',
-      'Das laufende Spiel wird beendet und du kommst zur Spielerverwaltung.',
+      t('abortGameTitle'),
+      t('abortGameText'),
       () => { state.game = null; saveState(); renderSetup(); }
     );
   } else {
@@ -1459,9 +1735,15 @@ function menuGoSetup() {
 function menuConfirmClear() {
   closeMenu();
   showConfirmDialog(
-    'App zurücksetzen?',
-    'Alle Spielerdaten und Spielstände werden unwiderruflich gelöscht.',
-    () => { clearStorage(); renderSetup(); showToast('App zurückgesetzt'); }
+    t('clearTitle'),
+    t('clearText'),
+    () => {
+      const lang = currentLang; // remember lang before clear
+      clearStorage();
+      currentLang = lang; // restore in memory (UI lang stays)
+      renderSetup();
+      showToast(t('toastReset'));
+    }
   );
 }
 
@@ -1514,14 +1796,14 @@ function escHtml(s) {
 // INIT
 // ═══════════════════════════════════════════════════════════
 (function init() {
+  currentLang = detectLang();
+  document.documentElement.lang = currentLang;
   loadState();
+  applyStaticTranslations();
+  updateLangToggleUI();
   if (state.game) {
-    // Resume running game
     renderGame();
-  } else if (state.players.length > 0) {
-    renderSetup();
   } else {
-    // Fresh start – add 3 default players to get started quickly
     renderSetup();
   }
 })();

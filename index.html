@@ -9,20 +9,20 @@
 <style>
   /* ── CSS Variables – Material Design 3 inspired dark fantasy theme ── */
   :root {
-    --md-primary: #C8A96E;
-    --md-primary-dark: #9C7A3C;
+    --md-primary: #E2C07A;
+    --md-primary-dark: #B8922E;
     --md-on-primary: #1C1208;
-    --md-secondary: #8B5E3C;
-    --md-surface: #1A1410;
-    --md-surface-1: #231C14;
-    --md-surface-2: #2C2318;
-    --md-surface-3: #35291C;
-    --md-outline: #4A3C28;
-    --md-outline-variant: #362C1A;
-    --md-on-surface: #EDE0CC;
-    --md-on-surface-variant: #A89070;
-    --md-error: #E57373;
-    --md-success: #81C784;
+    --md-secondary: #A67445;
+    --md-surface: #0D0A07;
+    --md-surface-1: #141009;
+    --md-surface-2: #1C160E;
+    --md-surface-3: #251C12;
+    --md-outline: #5A4A30;
+    --md-outline-variant: #3A2E1C;
+    --md-on-surface: #F5ECD8;
+    --md-on-surface-variant: #C8A870;
+    --md-error: #EF9A9A;
+    --md-success: #A5D6A7;
 
     --player-1: #E57373;
     --player-2: #64B5F6;
@@ -106,7 +106,7 @@
   /* ── Section Title ── */
   .section-title {
     font-family: var(--font-display);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     letter-spacing: 0.12em;
     color: var(--md-on-surface-variant);
     text-transform: uppercase;
@@ -202,8 +202,8 @@
     border-bottom: 1.5px solid var(--md-outline);
     color: var(--md-on-surface);
     font-family: var(--font-body);
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.05rem;
+    font-weight: 700;
     padding: 4px 2px;
     outline: none;
     transition: border-color 0.2s;
@@ -255,7 +255,7 @@
     align-items: flex-start;
   }
   .info-box-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
-  .info-box p { font-size: 0.875rem; color: var(--md-on-surface-variant); line-height: 1.5; }
+  .info-box p { font-size: 0.9rem; color: var(--md-on-surface); line-height: 1.6; }
 
   /* ── Round Header ── */
   .round-header {
@@ -280,7 +280,7 @@
     line-height: 1.1;
     margin: 4px 0;
   }
-  .round-sub { font-size: 0.85rem; color: var(--md-on-surface-variant); }
+  .round-sub { font-size: 0.88rem; color: var(--md-on-surface); }
 
   /* ── Dealer Badge ── */
   .dealer-badge {
@@ -291,7 +291,7 @@
     border: 1px solid var(--md-outline);
     border-radius: var(--radius-full);
     padding: 6px 14px;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     color: var(--md-primary);
     font-weight: 700;
     margin-top: 8px;
@@ -318,7 +318,7 @@
     background: var(--md-surface-2);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
-  .player-trick-name { font-weight: 700; font-size: 0.95rem; flex: 1; }
+  .player-trick-name { font-weight: 700; font-size: 1rem; flex: 1; color: var(--md-on-surface); }
   .player-trick-dealer {
     font-size: 0.75rem;
     background: rgba(200,169,110,0.15);
@@ -366,8 +366,8 @@
     background: var(--md-surface-3);
     color: var(--md-on-surface);
     font-family: var(--font-body);
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.15rem;
+    font-weight: 800;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -394,9 +394,9 @@
     padding: 8px 6px;
     text-align: center;
     font-family: var(--font-display);
-    font-size: 0.7rem;
+    font-size: 0.76rem;
     letter-spacing: 0.06em;
-    color: var(--md-on-surface-variant);
+    color: var(--md-on-surface);
     border-bottom: 1px solid var(--md-outline);
     white-space: nowrap;
   }
@@ -406,20 +406,21 @@
     text-overflow: ellipsis;
   }
   .score-table td {
-    padding: 7px 6px;
+    padding: 8px 6px;
     text-align: center;
     border-bottom: 1px solid var(--md-outline-variant);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.88rem;
   }
   .score-table tr:last-child td { border-bottom: none; }
-  .score-table td.round-col { color: var(--md-on-surface-variant); font-size: 0.78rem; }
+  .score-table td.round-col { color: var(--md-on-surface-variant); font-size: 0.82rem; }
   .score-table td.positive { color: var(--md-success); }
   .score-table td.negative { color: var(--md-error); }
   .score-table td.zero { color: var(--md-on-surface-variant); }
-  .score-table .current-round { background: rgba(200,169,110,0.06); }
+  .score-table .current-round { background: rgba(226,192,122,0.07); }
   .score-table .total-row td { 
     font-family: var(--font-display);
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     color: var(--md-primary);
     border-top: 2px solid var(--md-outline);
     padding: 10px 6px;

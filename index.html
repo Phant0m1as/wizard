@@ -675,7 +675,42 @@
   @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
 
   /* ── Chip row for phase buttons ── */
-  .phase-row { display: flex; justify-content: center; }
+  .phase-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* ── Sum Badge ── */
+  .sum-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--md-surface-2);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--radius-full);
+    padding: 5px 14px;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--md-on-surface);
+    white-space: nowrap;
+  }
+  .sum-icon {
+    color: var(--md-primary);
+    font-size: 1rem;
+  }
+  .sum-max {
+    color: var(--md-on-surface-variant);
+    font-size: 0.78rem;
+  }
+  .sum-badge.over {
+    border-color: var(--md-error);
+    color: var(--md-error);
+  }
+  .sum-badge.over .sum-icon { color: var(--md-error); }
+  .sum-badge.over .sum-max { color: var(--md-error); }
 </style>
 </head>
 <body>
@@ -750,9 +785,14 @@
     <!-- Step indicator -->
     <div class="step-indicator" id="step-indicator"></div>
 
-    <!-- Phase label -->
+    <!-- Phase label + sum -->
     <div class="phase-row">
       <span class="phase-label" id="phase-label">Vorhersage</span>
+      <span class="sum-badge" id="sum-badge">
+        <span class="sum-icon">∑</span>
+        <span id="sum-value">0</span>
+        <span id="sum-max" class="sum-max">/ 0</span>
+      </span>
     </div>
 
     <!-- Trick input section -->
@@ -1047,6 +1087,9 @@ function renderGame() {
     phaseLabel.className = 'phase-label phase-result';
   }
 
+  // Sum badge (initial render)
+  updateSumBadge();
+
   // Trick input for each player
   const trickSection = document.getElementById('trick-section');
   trickSection.innerHTML = '';
@@ -1102,13 +1145,34 @@ function renderGame() {
   }
 }
 
+function updateSumBadge() {
+  const g = state.game;
+  if (!g) return;
+  const data = g.phase === 'predict' ? g.predictions : g.results;
+  const sum = state.players.reduce((acc, p) => acc + (data[p.id] ?? 0), 0);
+  const max = g.round;
+
+  const badge = document.getElementById('sum-badge');
+  const valEl = document.getElementById('sum-value');
+  const maxEl = document.getElementById('sum-max');
+  if (!badge || !valEl || !maxEl) return;
+
+  valEl.textContent = sum;
+  maxEl.textContent = `/ ${max}`;
+  // Turn red only in result phase when over max
+  if (g.phase === 'result' && sum > max) {
+    badge.classList.add('over');
+  } else {
+    badge.classList.remove('over');
+  }
+}
+
 function selectTricks(playerId, value) {
   const g = state.game;
   const data = g.phase === 'predict' ? g.predictions : g.results;
   data[playerId] = value;
   saveState();
-
-  // Update card UI
+  updateSumBadge();
   const card = document.getElementById(`trick-card-${playerId}`);
   if (!card) return;
   card.classList.add('selected');

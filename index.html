@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Wizard Scorekeeper</title>
+<title>Wizard – Punktezähler</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -76,9 +76,9 @@
   }
   .top-bar-title {
     font-family: var(--font-display);
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--md-primary);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -785,7 +785,7 @@
         <rect x="3" y="1" width="22" height="26" rx="3" stroke="#C8A96E" stroke-width="1.5"/>
         <text x="14" y="19" text-anchor="middle" font-size="14" font-family="serif" fill="#C8A96E">♠</text>
       </svg>
-      Wizard
+      <span id="top-bar-title-text">Wizard Punktezähler</span>
     </div>
     <button class="icon-btn" onclick="openMenu()" aria-label="Menü">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
@@ -967,7 +967,6 @@ const TRANSLATIONS = {
   de: {
     // Top bar / menu
     appTitle:          'Wizard Punktezähler',
-    menuTitle:         '⚙️ Menü',
     menuGoSetup:       'Zurück zur Spielerverwaltung',
     menuClear:         'App zurücksetzen (LocalStorage löschen)',
     menuClose:         'Schließen',
@@ -1026,7 +1025,6 @@ const TRANSLATIONS = {
   },
   en: {
     appTitle:          'Wizard Scorekeeper',
-    menuTitle:         '⚙️ Menu',
     menuGoSetup:       'Back to Player Management',
     menuClear:         'Reset App (Clear LocalStorage)',
     menuClose:         'Close',
@@ -1116,7 +1114,8 @@ function t(key, ...args) {
 
 // Apply translations to static HTML elements (those not re-rendered by JS)
 function applyStaticTranslations() {
-  document.title = t('appTitle') + ' – ' + (currentLang === 'de' ? 'Punktezähler' : 'Score Tracker');
+  document.title = t('appTitle');
+  qs('#top-bar-title-text').textContent = t('appTitle');
   // Setup screen static elements
   qs('#screen-setup h1').textContent       = t('newGame');
   qs('#screen-setup p').textContent        = t('newGameSub');

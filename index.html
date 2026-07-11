@@ -9,27 +9,37 @@
 <style>
   /* ── CSS Variables – Material Design 3 inspired dark fantasy theme ── */
   :root {
-    --md-primary: #E2C07A;
-    --md-primary-dark: #B8922E;
-    --md-on-primary: #1C1208;
-    --md-secondary: #A67445;
-    --md-surface: #0D0A07;
-    --md-surface-1: #141009;
-    --md-surface-2: #1C160E;
-    --md-surface-3: #251C12;
-    --md-outline: #5A4A30;
-    --md-outline-variant: #3A2E1C;
-    --md-on-surface: #F5ECD8;
-    --md-on-surface-variant: #C8A870;
-    --md-error: #EF9A9A;
-    --md-success: #A5D6A7;
+    /* Accent: bright gold, high contrast on dark */
+    --md-primary: #F2CE85;
+    --md-primary-dark: #D4A94F;
+    --md-on-primary: #17130A;
 
-    --player-1: #E57373;
-    --player-2: #64B5F6;
-    --player-3: #81C784;
-    --player-4: #FFD54F;
-    --player-5: #BA68C8;
-    --player-6: #FF8A65;
+    /* Surfaces: near-neutral dark, low saturation for max text contrast */
+    --md-surface: #0A0B0D;
+    --md-surface-1: #15171B;
+    --md-surface-2: #1F2229;
+    --md-surface-3: #2B2F38;
+
+    /* Outlines: clearly visible against surfaces */
+    --md-outline: #5B6270;
+    --md-outline-variant: #3B404A;
+
+    /* Text: white primary, light-grey secondary (WCAG AA+) */
+    --md-on-surface: #FFFFFF;
+    --md-on-surface-variant: #C7CDD8;
+
+    /* Status colours: brightened */
+    --md-error: #FF9E9E;
+    --md-success: #8FE39C;
+    --md-predict: #8CC6FF;
+
+    /* Player colours: bright & saturated, paired with DARK text on the dot */
+    --player-1: #FF7B7B;
+    --player-2: #6BB6FF;
+    --player-3: #6FDB8A;
+    --player-4: #FFD65C;
+    --player-5: #CE8DE6;
+    --player-6: #FF9B6B;
 
     --font-display: 'Cinzel', serif;
     --font-body: 'Nunito', sans-serif;
@@ -53,7 +63,7 @@
     min-height: 100dvh;
     overflow-x: hidden;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(200,169,110,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 0%, rgba(242,206,133,0.08) 0%, transparent 60%),
       radial-gradient(ellipse at 80% 100%, rgba(139,94,60,0.08) 0%, transparent 60%);
   }
 
@@ -76,7 +86,7 @@
   }
   .top-bar-title {
     font-family: var(--font-display);
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     color: var(--md-primary);
     letter-spacing: 0.04em;
     display: flex;
@@ -97,7 +107,7 @@
     transition: background 0.2s;
     font-size: 1.2rem;
   }
-  .icon-btn:active { background: rgba(200,169,110,0.12); }
+  .icon-btn:active { background: rgba(242,206,133,0.12); }
 
   /* ── Page / Screen ── */
   .screen { display: none; flex: 1; flex-direction: column; padding: 16px; gap: 16px; overflow-y: auto; padding-bottom: 32px; }
@@ -106,7 +116,7 @@
   /* ── Section Title ── */
   .section-title {
     font-family: var(--font-display);
-    font-size: 0.8rem;
+    font-size: 1.04rem;
     letter-spacing: 0.12em;
     color: var(--md-on-surface-variant);
     text-transform: uppercase;
@@ -138,7 +148,7 @@
     border-radius: var(--radius-full);
     border: none;
     font-family: var(--font-body);
-    font-size: 0.95rem;
+    font-size: 1.235rem;
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
@@ -171,13 +181,59 @@
   .btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
 
   /* ── Player List ── */
+  #player-list-container { position: relative; }
+
   .player-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 12px 14px;
     border-bottom: 1px solid var(--md-outline-variant);
-    transition: background 0.15s;
+    background: var(--md-surface-1);
+    transition: transform 0.18s cubic-bezier(0.2,0,0,1), background 0.15s, box-shadow 0.15s;
+    will-change: transform;
+  }
+
+  /* The row currently being dragged */
+  .player-item.dragging {
+    background: var(--md-surface-3);
+    box-shadow: var(--shadow-3);
+    border-radius: var(--radius-md);
+    border-bottom-color: transparent;
+    position: relative;
+    z-index: 10;
+    transition: none; /* follow the finger 1:1 */
+    cursor: grabbing;
+  }
+
+  /* Drag handle */
+  .drag-handle {
+    flex-shrink: 0;
+    width: 38px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--md-on-surface-variant);
+    cursor: grab;
+    border-radius: var(--radius-sm);
+    touch-action: none;      /* let us own the gesture, no page scroll */
+    user-select: none;
+    -webkit-user-select: none;
+    transition: color 0.15s, background 0.15s;
+  }
+  .drag-handle:active { cursor: grabbing; color: var(--md-primary); background: rgba(242,206,133,0.12); }
+  .drag-handle svg { width: 20px; height: 20px; pointer-events: none; }
+
+  /* Hint under the list */
+  .drag-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 0.95rem;
+    color: var(--md-on-surface-variant);
+    padding: 2px 0;
   }
   .player-item:last-child { border-bottom: none; }
 
@@ -188,11 +244,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #14161B;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
   }
 
   .player-name-input {
@@ -202,7 +257,7 @@
     border-bottom: 1.5px solid var(--md-outline);
     color: var(--md-on-surface);
     font-family: var(--font-body);
-    font-size: 1.05rem;
+    font-size: 1.365rem;
     font-weight: 700;
     padding: 4px 2px;
     outline: none;
@@ -223,7 +278,7 @@
     opacity: 0.7;
     transition: opacity 0.2s, background 0.2s;
   }
-  .player-delete-btn:active { opacity: 1; background: rgba(229,115,115,0.15); }
+  .player-delete-btn:active { opacity: 1; background: rgba(255,158,158,0.15); }
 
   /* ── Add Player Button ── */
   .add-player-btn {
@@ -237,7 +292,7 @@
     color: var(--md-on-surface-variant);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 0.95rem;
+    font-size: 1.235rem;
     font-weight: 600;
     transition: border-color 0.2s, color 0.2s;
     width: 100%;
@@ -255,7 +310,7 @@
     align-items: flex-start;
   }
   .info-box-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
-  .info-box p { font-size: 0.9rem; color: var(--md-on-surface); line-height: 1.6; }
+  .info-box p { font-size: 1.17rem; color: var(--md-on-surface); line-height: 1.6; }
 
   /* ── Round Header ── */
   .round-header {
@@ -267,7 +322,7 @@
     box-shadow: var(--shadow-2);
   }
   .round-label {
-    font-size: 0.75rem;
+    font-size: 0.975rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--md-on-surface-variant);
@@ -280,7 +335,7 @@
     line-height: 1.1;
     margin: 4px 0;
   }
-  .round-sub { font-size: 0.88rem; color: var(--md-on-surface); }
+  .round-sub { font-size: 1.144rem; color: var(--md-on-surface); }
 
   /* ── Dealer Badge ── */
   .dealer-badge {
@@ -291,12 +346,12 @@
     border: 1px solid var(--md-outline);
     border-radius: var(--radius-full);
     padding: 6px 14px;
-    font-size: 0.88rem;
+    font-size: 1.144rem;
     color: var(--md-primary);
     font-weight: 700;
     margin-top: 8px;
   }
-  .dealer-badge .card-icon { font-size: 1rem; }
+  .dealer-badge .card-icon { font-size: 1.3rem; }
 
   /* ── Trick Input ── */
   .trick-section { display: flex; flex-direction: column; gap: 12px; }
@@ -318,11 +373,11 @@
     background: var(--md-surface-2);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
-  .player-trick-name { font-weight: 700; font-size: 1rem; flex: 1; color: var(--md-on-surface); }
+  .player-trick-name { font-weight: 700; font-size: 1.3rem; flex: 1; color: var(--md-on-surface); }
   .player-trick-dealer {
-    font-size: 0.75rem;
-    background: rgba(200,169,110,0.15);
-    border: 1px solid rgba(200,169,110,0.3);
+    font-size: 0.975rem;
+    background: rgba(242,206,133,0.15);
+    border: 1px solid rgba(242,206,133,0.3);
     color: var(--md-primary);
     border-radius: var(--radius-full);
     padding: 2px 8px;
@@ -331,7 +386,7 @@
     gap: 3px;
   }
   .player-selected-badge {
-    font-size: 0.72rem;
+    font-size: 0.936rem;
     background: var(--md-primary);
     color: var(--md-on-primary);
     border-radius: var(--radius-full);
@@ -359,14 +414,15 @@
     min-width: 100%;
   }
   .trick-btn {
-    width: 52px; height: 52px;
-    flex: 0 0 52px; /* fixed size, never shrink */
+    position: relative;
+    width: 58px; height: 58px;
+    flex: 0 0 58px; /* fixed size, never shrink */
     border-radius: var(--radius-sm);
     border: 1.5px solid var(--md-outline);
     background: var(--md-surface-3);
     color: var(--md-on-surface);
     font-family: var(--font-body);
-    font-size: 1.15rem;
+    font-size: 1.35rem;
     font-weight: 800;
     cursor: pointer;
     display: flex;
@@ -376,11 +432,63 @@
     touch-action: manipulation;
   }
   .trick-btn:active { transform: scale(0.93); }
+
+  /* Button matching this player's prediction – visible during result phase */
+  .trick-btn.predicted {
+    background: rgba(140,198,255,0.18);
+    border-color: var(--md-predict);
+    color: var(--md-predict);
+  }
+  /* Dot marking the predicted value – stays visible even when selected */
+  .trick-btn.predicted::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--md-predict);
+  }
+
+  /* Prediction badge shown in the player header during result phase */
+  .prediction-badge {
+    font-size: 0.95rem;
+    background: rgba(140,198,255,0.16);
+    border: 1px solid var(--md-predict);
+    color: var(--md-predict);
+    border-radius: var(--radius-full);
+    padding: 3px 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  /* Legend explaining the blue prediction marker */
+  .predict-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 0.95rem;
+    color: var(--md-on-surface-variant);
+  }
+  .predict-legend .swatch {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    background: rgba(140,198,255,0.18);
+    border: 1.5px solid var(--md-predict);
+    flex-shrink: 0;
+  }
+
+  /* Selected value wins visually, but keeps the prediction dot */
   .trick-btn.active {
     border-color: var(--md-primary);
-    background: rgba(200,169,110,0.2);
+    background: rgba(242,206,133,0.22);
     color: var(--md-primary);
-    box-shadow: 0 0 0 2px rgba(200,169,110,0.3);
+    box-shadow: 0 0 0 2px rgba(242,206,133,0.35);
   }
 
   /* ── Score Table ── */
@@ -388,13 +496,13 @@
   .score-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.82rem;
+    font-size: 1.066rem;
   }
   .score-table th {
     padding: 8px 6px;
     text-align: center;
     font-family: var(--font-display);
-    font-size: 0.76rem;
+    font-size: 0.988rem;
     letter-spacing: 0.06em;
     color: var(--md-on-surface);
     border-bottom: 1px solid var(--md-outline);
@@ -410,17 +518,17 @@
     text-align: center;
     border-bottom: 1px solid var(--md-outline-variant);
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 1.144rem;
   }
   .score-table tr:last-child td { border-bottom: none; }
-  .score-table td.round-col { color: var(--md-on-surface-variant); font-size: 0.82rem; }
+  .score-table td.round-col { color: var(--md-on-surface-variant); font-size: 1.066rem; }
   .score-table td.positive { color: var(--md-success); }
   .score-table td.negative { color: var(--md-error); }
   .score-table td.zero { color: var(--md-on-surface-variant); }
-  .score-table .current-round { background: rgba(226,192,122,0.07); }
+  .score-table .current-round { background: rgba(242,206,133,0.07); }
   .score-table .total-row td { 
     font-family: var(--font-display);
-    font-size: 0.92rem;
+    font-size: 1.196rem;
     color: var(--md-primary);
     border-top: 2px solid var(--md-outline);
     padding: 10px 6px;
@@ -451,7 +559,7 @@
     box-shadow: var(--shadow-1);
   }
   .result-item.first {
-    background: linear-gradient(135deg, rgba(200,169,110,0.15), rgba(200,169,110,0.05));
+    background: linear-gradient(135deg, rgba(242,206,133,0.15), rgba(242,206,133,0.05));
     border-color: var(--md-primary);
     box-shadow: var(--shadow-2);
   }
@@ -473,14 +581,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #14161B;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5);
     flex-shrink: 0;
   }
-  .result-name { flex: 1; font-weight: 700; font-size: 1rem; }
+  .result-name { flex: 1; font-weight: 700; font-size: 1.3rem; }
   .result-points { font-family: var(--font-display); font-size: 1.2rem; color: var(--md-primary); font-weight: 600; }
 
   /* ── Settings / Menu Sheet ── */
@@ -530,7 +637,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: background 0.15s;
-    font-size: 0.95rem;
+    font-size: 1.235rem;
     font-weight: 600;
     color: var(--md-on-surface);
   }
@@ -550,7 +657,7 @@
     color: var(--md-on-surface);
     padding: 12px 20px;
     border-radius: var(--radius-full);
-    font-size: 0.875rem;
+    font-size: 1.137rem;
     font-weight: 600;
     box-shadow: var(--shadow-2);
     z-index: 1000;
@@ -582,7 +689,7 @@
   .phase-label {
     text-align: center;
     font-family: var(--font-display);
-    font-size: 0.8rem;
+    font-size: 1.04rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     padding: 6px 16px;
@@ -624,7 +731,7 @@
     color: var(--md-on-surface);
     margin-bottom: 12px;
   }
-  .dialog-text { font-size: 0.875rem; color: var(--md-on-surface-variant); line-height: 1.5; margin-bottom: 24px; }
+  .dialog-text { font-size: 1.137rem; color: var(--md-on-surface-variant); line-height: 1.5; margin-bottom: 24px; }
   .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
   .menu-lang-row {
@@ -649,7 +756,7 @@
     background: transparent;
     color: var(--md-on-surface-variant);
     font-family: var(--font-body);
-    font-size: 0.88rem;
+    font-size: 1.144rem;
     font-weight: 700;
     cursor: pointer;
     letter-spacing: 0.05em;
@@ -660,7 +767,7 @@
     color: var(--md-on-primary);
   }
   .lang-btn:not(.active):active {
-    background: rgba(226,192,122,0.15);
+    background: rgba(242,206,133,0.15);
     color: var(--md-primary);
   }
 
@@ -679,7 +786,7 @@
     display: none;
     align-items: flex-start;
     gap: 10px;
-    background: rgba(229,115,115,0.12);
+    background: rgba(255,158,158,0.12);
     border: 1.5px solid var(--md-error);
     border-radius: var(--radius-md);
     padding: 14px 16px;
@@ -687,7 +794,7 @@
   }
   .validation-banner.show { display: flex; }
   .validation-banner-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
-  .validation-banner p { font-size: 0.875rem; color: var(--md-error); line-height: 1.5; font-weight: 600; }
+  .validation-banner p { font-size: 1.137rem; color: var(--md-error); line-height: 1.5; font-weight: 600; }
   .validation-banner p span { font-weight: 700; }
   @keyframes shakeX {
     0%,100% { transform: translateX(0); }
@@ -729,18 +836,18 @@
     border-radius: var(--radius-full);
     padding: 5px 14px;
     font-family: var(--font-display);
-    font-size: 0.88rem;
+    font-size: 1.144rem;
     font-weight: 700;
     color: var(--md-on-surface);
     white-space: nowrap;
   }
   .sum-icon {
     color: var(--md-primary);
-    font-size: 1rem;
+    font-size: 1.3rem;
   }
   .sum-max {
     color: var(--md-on-surface-variant);
-    font-size: 0.78rem;
+    font-size: 1.014rem;
   }
   .sum-badge.over {
     border-color: var(--md-error);
@@ -762,7 +869,7 @@
     background: transparent;
     color: var(--md-on-surface-variant);
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 1.105rem;
     font-weight: 700;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
@@ -781,9 +888,9 @@
   <header class="top-bar">
     <div class="top-bar-title">
       <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="1" width="22" height="26" rx="3" fill="#C8A96E" opacity="0.15"/>
-        <rect x="3" y="1" width="22" height="26" rx="3" stroke="#C8A96E" stroke-width="1.5"/>
-        <text x="14" y="19" text-anchor="middle" font-size="14" font-family="serif" fill="#C8A96E">♠</text>
+        <rect x="3" y="1" width="22" height="26" rx="3" fill="#F2CE85" opacity="0.15"/>
+        <rect x="3" y="1" width="22" height="26" rx="3" stroke="#F2CE85" stroke-width="1.5"/>
+        <text x="14" y="19" text-anchor="middle" font-size="14" font-family="serif" fill="#F2CE85">♠</text>
       </svg>
       <span id="top-bar-title-text">Wizard Punktezähler</span>
     </div>
@@ -801,12 +908,21 @@
     <div style="text-align:center; padding: 8px 0 4px;">
       <span class="wizard-star">✦</span>
       <h1 style="font-family:var(--font-display); font-size:1.5rem; color:var(--md-primary); margin-top:8px;">Neues Spiel</h1>
-      <p style="font-size:0.85rem; color:var(--md-on-surface-variant); margin-top:4px;">3 bis 6 Spieler hinzufügen</p>
+      <p style="font-size:1.105rem; color:var(--md-on-surface-variant); margin-top:4px;">3 bis 6 Spieler hinzufügen</p>
     </div>
 
     <span class="section-title">Spieler</span>
     <div class="card" id="player-list-container">
       <!-- Players injected here -->
+    </div>
+
+    <div class="drag-hint" id="drag-hint" style="display:none;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/>
+        <circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/>
+        <circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/>
+      </svg>
+      <span>Zum Umsortieren am Griff ziehen</span>
     </div>
 
     <button class="add-player-btn" id="add-player-btn" onclick="addPlayer()">
@@ -885,7 +1001,7 @@
     <div class="text-center" style="padding: 8px 0;">
       <div class="trophy">🏆</div>
       <h1 style="font-family:var(--font-display); font-size:1.6rem; color:var(--md-primary);">Spielende!</h1>
-      <p style="font-size:0.85rem; color:var(--md-on-surface-variant); margin-top:4px;">Endauswertung aller Runden</p>
+      <p style="font-size:1.105rem; color:var(--md-on-surface-variant); margin-top:4px;">Endauswertung aller Runden</p>
     </div>
 
     <div id="results-list" style="display:flex; flex-direction:column; gap:10px;"></div>
@@ -920,7 +1036,7 @@
     <!-- Language toggle -->
     <div class="menu-lang-row">
       <span class="menu-item-icon">🌐</span>
-      <span id="menu-lang-label" style="font-weight:600; font-size:0.95rem; flex:1;">Sprache</span>
+      <span id="menu-lang-label" style="font-weight:600; font-size:1.235rem; flex:1;">Sprache</span>
       <div class="lang-toggle">
         <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
         <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
@@ -992,11 +1108,13 @@ const TRANSLATIONS = {
     btnConfirmPredict: 'Vorhersagen bestätigen',
     btnConfirmResult:  'Runde auswerten',
     cardDealer:        'Geber',
+    legendPredicted:   'Blau markiert = Vorhersage dieses Spielers',
+    dragHint:          'Zum Umsortieren am Griff ziehen',
     cardsInfo:         (n) => `${n} Karte${n !== 1 ? 'n' : ''} pro Spieler – ${n} mögliche${n !== 1 ? '' : 'r'} Stich${n !== 1 ? 'e' : ''}`,
 
     // Validation
-    errTooMany:        (total, max) => `Summe der Stiche (${total}) übersteigt das Maximum dieser Runde (${max}). Bitte korrigieren.`,
-    warnTooFew:        (total, max) => `Hinweis: Die Summe der Stiche (${total}) ist kleiner als das Maximum (${max}). Trotzdem auswerten?`,
+    errTooMany:        (total, max) => `Zu viele Stiche: ${total} eingegeben, in dieser Runde sind nur ${max} möglich. Bitte korrigieren.`,
+    errTooFew:         (total, max) => `Es fehlen Stiche: bisher ${total} von ${max}. Jeder Stich wird von jemandem gewonnen – die Summe muss genau ${max} ergeben.`,
 
     // Results screen
     gameOver:          'Spielende!',
@@ -1048,10 +1166,12 @@ const TRANSLATIONS = {
     btnConfirmPredict: 'Confirm Predictions',
     btnConfirmResult:  'Evaluate Round',
     cardDealer:        'Dealer',
+    legendPredicted:   'Blue marker = this player\'s prediction',
+    dragHint:          'Drag the handle to reorder',
     cardsInfo:         (n) => `${n} card${n !== 1 ? 's' : ''} per player – ${n} possible trick${n !== 1 ? 's' : ''}`,
 
-    errTooMany:        (total, max) => `Total tricks (${total}) exceeds the maximum for this round (${max}). Please correct.`,
-    warnTooFew:        (total, max) => `Note: Total tricks (${total}) is less than the maximum (${max}). Evaluate anyway?`,
+    errTooMany:        (total, max) => `Too many tricks: ${total} entered, only ${max} are possible this round. Please correct.`,
+    errTooFew:         (total, max) => `Tricks missing: ${total} of ${max}. Every trick is won by someone – the total must be exactly ${max}.`,
 
     gameOver:          'Game Over!',
     gameOverSub:       'Final standings',
@@ -1166,7 +1286,7 @@ function qs(sel) { return document.querySelector(sel); }
 // ═══════════════════════════════════════════════════════════
 const STORAGE_KEY = 'wizard_app_v2';
 const PLAYER_COLORS = [
-  '#E57373','#64B5F6','#81C784','#FFD54F','#BA68C8','#FF8A65'
+  '#FF7B7B','#6BB6FF','#6FDB8A','#FFD65C','#CE8DE6','#FF9B6B'
 ];
 const MAX_ROUNDS = { 3: 20, 4: 15, 5: 12, 6: 10 };
 
@@ -1230,18 +1350,27 @@ function renderSetup() {
 
   container.innerHTML = '';
   if (state.players.length === 0) {
-    container.innerHTML = `<p style="text-align:center;padding:20px 16px;color:var(--md-on-surface-variant);font-size:0.875rem;">${t('noPlayersYet')}</p>`;
+    container.innerHTML = `<p style="text-align:center;padding:20px 16px;color:var(--md-on-surface-variant);font-size:1.137rem;">${t('noPlayersYet')}</p>`;
   } else {
-    state.players.forEach(p => {
+    state.players.forEach((p, idx) => {
       const div = document.createElement('div');
       div.className = 'player-item';
+      div.dataset.index = idx;
+      div.dataset.id = p.id;
       div.innerHTML = `
+        <div class="drag-handle" aria-label="reorder">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/>
+            <circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/>
+            <circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/>
+          </svg>
+        </div>
         <div class="player-color-dot" style="background:${p.color}">${playerInitials(p.name)}</div>
         <input class="player-name-input" type="text" value="${escHtml(p.name)}" maxlength="18"
           placeholder="${t('namePlaceholder')}"
           onchange="renamePlayer('${p.id}', this.value)"
           oninput="renamePlayer('${p.id}', this.value)">
-        <button class="player-delete-btn" onclick="deletePlayer('${p.id}')" aria-label="${t('menuClear')}">
+        <button class="player-delete-btn" onclick="deletePlayer('${p.id}')" aria-label="delete">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
             <path d="M9 6V4h6v2"/>
@@ -1250,10 +1379,113 @@ function renderSetup() {
       `;
       container.appendChild(div);
     });
+    attachDragHandlers();
+  }
+
+  // Show the reorder hint only when there is something to reorder
+  const hintEl = document.getElementById('drag-hint');
+  if (hintEl) {
+    hintEl.style.display = state.players.length >= 2 ? 'flex' : 'none';
+    hintEl.querySelector('span:last-child').textContent = t('dragHint');
   }
 
   addBtn.style.display = state.players.length >= 6 ? 'none' : 'flex';
   startBtn.disabled = state.players.length < 3;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DRAG & DROP REORDERING (pointer events → works on touch + mouse)
+// ═══════════════════════════════════════════════════════════
+let drag = null;
+
+function attachDragHandlers() {
+  document.querySelectorAll('#player-list-container .drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', onDragStart);
+  });
+}
+
+function onDragStart(e) {
+  // Ignore secondary mouse buttons
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+
+  const row  = e.currentTarget.closest('.player-item');
+  const rows = Array.from(document.querySelectorAll('#player-list-container .player-item'));
+  if (!row || rows.length < 2) return;
+
+  const rect = row.getBoundingClientRect();
+
+  drag = {
+    row,
+    rows,
+    fromIndex: rows.indexOf(row),
+    toIndex:   rows.indexOf(row),
+    startY:    e.clientY,
+    rowH:      rect.height,
+    pointerId: e.pointerId
+  };
+
+  row.classList.add('dragging');
+  row.setPointerCapture(e.pointerId);
+  row.addEventListener('pointermove',   onDragMove);
+  row.addEventListener('pointerup',     onDragEnd);
+  row.addEventListener('pointercancel', onDragEnd);
+
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+
+  const delta = e.clientY - drag.startY;
+  const n     = drag.rows.length;
+
+  // Move the dragged row with the finger
+  drag.row.style.transform = `translateY(${delta}px)`;
+
+  // Which slot are we hovering over?
+  let target = drag.fromIndex + Math.round(delta / drag.rowH);
+  target = Math.max(0, Math.min(n - 1, target));
+  drag.toIndex = target;
+
+  // Shift the other rows out of the way to preview the new order
+  drag.rows.forEach((r, i) => {
+    if (r === drag.row) return;
+    let shift = 0;
+    if (drag.fromIndex < target && i > drag.fromIndex && i <= target) {
+      shift = -drag.rowH;                 // rows move up
+    } else if (drag.fromIndex > target && i >= target && i < drag.fromIndex) {
+      shift = drag.rowH;                  // rows move down
+    }
+    r.style.transform = `translateY(${shift}px)`;
+  });
+}
+
+function onDragEnd(e) {
+  if (!drag) return;
+
+  const { row, rows, fromIndex, toIndex, pointerId } = drag;
+
+  row.removeEventListener('pointermove',   onDragMove);
+  row.removeEventListener('pointerup',     onDragEnd);
+  row.removeEventListener('pointercancel', onDragEnd);
+  try { row.releasePointerCapture(pointerId); } catch (_) {}
+
+  // Clear inline transforms before re-render
+  rows.forEach(r => { r.style.transform = ''; });
+  row.classList.remove('dragging');
+
+  drag = null;
+
+  // Commit the new order
+  if (toIndex !== fromIndex) {
+    const [moved] = state.players.splice(fromIndex, 1);
+    state.players.splice(toIndex, 0, moved);
+    saveState();
+    if (navigator.vibrate) navigator.vibrate(12);
+  }
+  renderSetup();
 }
 
 function addPlayer() {
@@ -1320,6 +1552,7 @@ function startGame() {
     results,
     scores: []
   };
+  showValidationBanner(null);   // never carry a banner over from a previous game
   saveState();
   renderGame();
 }
@@ -1371,32 +1604,51 @@ function renderGame() {
 
   const data = g.phase === 'predict' ? g.predictions : g.results;
 
+  const isResultPhase = g.phase === 'result';
+
   state.players.forEach((p, pi) => {
     const isDealer = pi === g.dealerIndex;
     const selected = data[p.id];
+    // In the result phase the prediction stays visible as a reference
+    const predicted = isResultPhase ? g.predictions[p.id] : null;
+
     const card = document.createElement('div');
     card.className = 'player-trick-card' + (selected !== null ? ' selected' : '');
     card.id = `trick-card-${p.id}`;
 
     const buttons = [];
     for (let i = 0; i <= cardsThisRound; i++) {
+      const cls = [
+        'trick-btn',
+        predicted === i ? 'predicted' : '',
+        selected  === i ? 'active'    : ''
+      ].filter(Boolean).join(' ');
       buttons.push(`
-        <button class="trick-btn${selected === i ? ' active' : ''}"
-          onclick="selectTricks('${p.id}', ${i})">${i}</button>
+        <button class="${cls}" onclick="selectTricks('${p.id}', ${i})">${i}</button>
       `);
     }
 
     card.innerHTML = `
       <div class="player-trick-header">
-        <div class="player-color-dot" style="background:${p.color};width:30px;height:30px;font-size:0.85rem;">${playerInitials(p.name)}</div>
+        <div class="player-color-dot" style="background:${p.color};width:34px;height:34px;font-size:1.05rem;">${playerInitials(p.name)}</div>
         <span class="player-trick-name">${escHtml(p.name)}</span>
         ${isDealer ? `<span class="player-trick-dealer"><span>🃏</span> ${t('cardDealer')}</span>` : ''}
+        ${predicted !== null && predicted !== undefined
+            ? `<span class="prediction-badge">🔮 ${predicted}</span>` : ''}
         ${selected !== null ? `<span class="player-selected-badge">${selected} ✓</span>` : ''}
       </div>
       <div class="trick-buttons-scroll"><div class="trick-buttons">${buttons.join('')}</div></div>
     `;
     trickSection.appendChild(card);
   });
+
+  // Legend explaining the blue prediction marker (result phase only)
+  if (isResultPhase) {
+    const legend = document.createElement('div');
+    legend.className = 'predict-legend';
+    legend.innerHTML = `<span class="swatch"></span><span>${t('legendPredicted')}</span>`;
+    trickSection.appendChild(legend);
+  }
 
   // Score table
   renderScoreTable();
@@ -1406,14 +1658,20 @@ function renderGame() {
   const allSelected = state.players.every(p => data[p.id] !== null);
 
   if (g.phase === 'predict') {
+    // Predictions have no sum constraint — make sure no stale banner is left over
+    showValidationBanner(null);
     actions.innerHTML = `
       <button class="btn btn-filled btn-full" onclick="confirmPredictions()" ${allSelected ? '' : 'disabled'}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         ${t('btnConfirmPredict')}
       </button>`;
   } else {
+    // Re-evaluate from current state (handles resume-after-reload too)
+    const validation = getResultValidationError(allSelected);
+    showValidationBanner(validation);
+    const blocked = !allSelected || !!validation;
     actions.innerHTML = `
-      <button class="btn btn-filled btn-full" onclick="confirmResults()" ${allSelected ? '' : 'disabled'}>
+      <button class="btn btn-filled btn-full" onclick="confirmResults()" ${blocked ? 'disabled' : ''}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         ${t('btnConfirmResult')}
       </button>`;
@@ -1467,43 +1725,43 @@ function selectTricks(playerId, value) {
   }
   badge.textContent = `${value} ✓`;
 
-  // In result phase: validate on every selection
+  const allSelected = state.players.every(p => data[p.id] !== null);
+  const actionBtn = document.querySelector('#game-actions .btn');
+
   if (g.phase === 'result') {
-    const allSelected = state.players.every(p => data[p.id] !== null);
-    const result = getResultValidationError(allSelected);
-    showValidationBanner(result);
-    const actionBtn = document.querySelector('#game-actions .btn');
-    if (actionBtn) actionBtn.disabled = !allSelected || (!!result && result.type === 'error');
+    // Result phase: tricks must sum exactly to the round number
+    const validation = getResultValidationError(allSelected);
+    showValidationBanner(validation);
+    if (actionBtn) actionBtn.disabled = !allSelected || !!validation;
   } else {
-    // Predict phase: just enable button when all selected
-    const allSelected = state.players.every(p => data[p.id] !== null);
-    const actionBtn = document.querySelector('#game-actions .btn');
+    // Predict phase: any sum is legal — no validation, no banner
+    showValidationBanner(null);
     if (actionBtn) actionBtn.disabled = !allSelected;
   }
 }
 
-// Returns {error, warning} — error blocks confirm, warning just informs.
-// allEntered: true when every player has a value.
+// Returns {type:'error', msg} or null.
+// Validates the RESULT phase only.
+// In Wizard every trick is won by someone (even an all-Narren trick goes to the
+// first Narr), so the tricks won must sum EXACTLY to the number of cards dealt.
+// Predictions have no such constraint — over-/under-bidding is the whole game.
+// allEntered: true once every player has a value.
 function getResultValidationError(allEntered) {
   const g = state.game;
+  if (!g || g.phase !== 'result') return null;   // never validate the predict phase
+
   const maxTricks = g.round;
   const entered = state.players.filter(p => g.results[p.id] !== null);
   const total   = entered.reduce((sum, p) => sum + g.results[p.id], 0);
 
-  // Too many – hard error, check immediately
+  // Too many – impossible, flag immediately
   if (total > maxTricks) {
-    return {
-      type: 'error',
-      msg: t('errTooMany', total, maxTricks)
-    };
+    return { type: 'error', msg: t('errTooMany', total, maxTricks) };
   }
 
-  // Too few – soft warning, only after all entered
+  // Too few – also impossible, but only meaningful once everyone has entered
   if (allEntered && total < maxTricks) {
-    return {
-      type: 'warning',
-      msg: t('warnTooFew', total, maxTricks)
-    };
+    return { type: 'error', msg: t('errTooFew', total, maxTricks) };
   }
 
   return null;
@@ -1519,12 +1777,12 @@ function showValidationBanner(result) {
     banner.dataset.type = result.type;
     // warning = amber tint, error = red tint
     if (result.type === 'warning') {
-      banner.style.background = 'rgba(255,213,79,0.10)';
-      banner.style.borderColor = '#FFD54F';
-      text.style.color = '#FFD54F';
+      banner.style.background = 'rgba(255,214,92,0.10)';
+      banner.style.borderColor = '#FFD65C';
+      text.style.color = '#FFD65C';
       banner.querySelector('.validation-banner-icon').textContent = '⚠️';
     } else {
-      banner.style.background = 'rgba(229,115,115,0.12)';
+      banner.style.background = 'rgba(255,158,158,0.12)';
       banner.style.borderColor = 'var(--md-error)';
       text.style.color = 'var(--md-error)';
       banner.querySelector('.validation-banner-icon').textContent = '🚫';
@@ -1553,7 +1811,7 @@ function confirmResults() {
 
   // Validate total tricks cannot exceed cards in play
   const validation = getResultValidationError(true);
-  if (validation && validation.type === 'error') {
+  if (validation) {
     showValidationBanner(validation);
     return;
   }
@@ -1620,7 +1878,7 @@ function renderScoreTable(tableId = 'score-table', headId = 'score-table-head', 
       <th class="player-col">
         <div class="player-col-header">
           <span class="player-col-dot" style="background:${p.color}"></span>
-          <span style="font-size:0.65rem;">${escHtml(shortName(p.name))}</span>
+          <span style="font-size:0.845rem;">${escHtml(shortName(p.name))}</span>
         </div>
       </th>`).join('');
 

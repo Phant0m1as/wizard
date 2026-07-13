@@ -779,6 +779,86 @@
   }
   .secondary-action { min-height: 46px; font-size: 1.05rem; }
 
+  /* ── Scoreboard button (in round header) ── */
+  .scoreboard-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    padding: 9px 18px;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--md-primary);
+    background: rgba(242,206,133,0.10);
+    color: var(--md-primary);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .scoreboard-btn:active { transform: scale(0.96); background: rgba(242,206,133,0.22); }
+
+  /* ── Generic sheet overlay ── */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(2px);
+  }
+  .sheet-overlay.open { display: flex; }
+
+  /* ── Scoreboard sheet ── */
+  .scoreboard-sheet {
+    background: var(--md-surface-1);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-top: 1px solid var(--md-outline);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    max-height: 82dvh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-3);
+    animation: slideUp 0.28s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .scoreboard-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 8px 12px 20px;
+    border-bottom: 1px solid var(--md-outline-variant);
+    flex-shrink: 0;
+  }
+  .scoreboard-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--md-primary);
+    letter-spacing: 0.04em;
+  }
+  .scoreboard-close { color: var(--md-on-surface-variant); }
+  .scoreboard-close:active { background: rgba(242,206,133,0.14); color: var(--md-primary); }
+
+  .scoreboard-body {
+    padding: 16px;
+    padding-bottom: 32px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scoreboard-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--md-on-surface-variant);
+    font-size: 1.05rem;
+  }
+
   /* ── Scroll area for score table ── */
   .score-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -961,10 +1041,14 @@
       <div class="round-label">Runde</div>
       <div class="round-number" id="round-display">1 / 20</div>
       <div class="round-sub" id="cards-display">1 Karte pro Spieler</div>
-      <div id="dealer-display" class="dealer-badge" style="margin-top:8px;">
-        <span class="card-icon">🃏</span>
-        <span id="dealer-name">–</span>
-      </div>
+      <button class="scoreboard-btn" id="btn-scoreboard" onclick="openScoreboard()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+        <span id="btn-scoreboard-label">Zwischenstand</span>
+      </button>
     </div>
 
     <!-- Step indicator -->
@@ -989,17 +1073,8 @@
       <p id="validation-banner-text">Fehler</p>
     </div>
 
-    <!-- Action buttons (directly under the input, above the score table) -->
+    <!-- Action buttons -->
     <div id="game-actions"></div>
-
-    <!-- Score table -->
-    <span class="section-title">Punktestand</span>
-    <div class="card score-scroll">
-      <table class="score-table" id="score-table">
-        <thead><tr id="score-table-head"></tr></thead>
-        <tbody id="score-table-body"></tbody>
-      </table>
-    </div>
   </div>
 
   <!-- ══════════════════════════════════════════
@@ -1034,6 +1109,39 @@
   </div>
 
 </div><!-- end #app -->
+
+<!-- ══ SCOREBOARD SHEET (slides up from the bottom) ══ -->
+<div class="sheet-overlay" id="scoreboard-overlay" onclick="closeScoreboardOnOverlay(event)">
+  <div class="scoreboard-sheet" role="dialog" aria-modal="true">
+    <div class="scoreboard-head">
+      <div class="scoreboard-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+        <span id="scoreboard-title-text">Zwischenstand</span>
+      </div>
+      <button class="icon-btn scoreboard-close" onclick="closeScoreboard()" aria-label="close">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="scoreboard-body">
+      <div class="card score-scroll">
+        <table class="score-table" id="score-table">
+          <thead><tr id="score-table-head"></tr></thead>
+          <tbody id="score-table-body"></tbody>
+        </table>
+      </div>
+      <p class="scoreboard-empty" id="scoreboard-empty" style="display:none;">
+        Noch keine Runde ausgewertet.
+      </p>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MENU SHEET ══ -->
 <div class="menu-overlay" id="menu-overlay" onclick="closeMenuOnOverlay(event)">
@@ -1115,6 +1223,9 @@ const TRANSLATIONS = {
     phaseResult:       '✅ Erzielte Stiche eingeben',
     btnConfirmPredict: 'Vorhersagen bestätigen',
     btnConfirmResult:  'Runde auswerten',
+    btnScoreboard:     'Zwischenstand',
+    scoreboardTitle:   'Zwischenstand',
+    scoreboardEmpty:   'Noch keine Runde ausgewertet.',
     btnEditPredict:    'Vorhersagen korrigieren',
     btnResetResults:   'Eingaben zurücksetzen',
     toastPredictEdit:  'Vorhersagen können jetzt korrigiert werden',
@@ -1177,6 +1288,9 @@ const TRANSLATIONS = {
     phaseResult:       '✅ Enter Tricks Won',
     btnConfirmPredict: 'Confirm Predictions',
     btnConfirmResult:  'Evaluate Round',
+    btnScoreboard:     'Scoreboard',
+    scoreboardTitle:   'Scoreboard',
+    scoreboardEmpty:   'No round evaluated yet.',
     btnEditPredict:    'Edit Predictions',
     btnResetResults:   'Clear Entries',
     toastPredictEdit:  'You can now correct the predictions',
@@ -1586,9 +1700,9 @@ function renderGame() {
   document.getElementById('round-display').textContent = `${g.round} / ${g.totalRounds}`;
   document.getElementById('cards-display').textContent = t('cardsInfo', cardsThisRound);
 
-  // Dealer
-  const dealer = state.players[g.dealerIndex];
-  document.getElementById('dealer-name').textContent = `${t('dealer')}: ${dealer.name}`;
+  // Dealer is no longer shown here — the player's card carries the 🃏 marker.
+  // Scoreboard button label (kept in sync with the current language)
+  document.getElementById('btn-scoreboard-label').textContent = t('btnScoreboard');
 
   // Step indicator
   const steps = document.getElementById('step-indicator');
@@ -2040,6 +2154,33 @@ function goToSetup() {
   state.game = null;
   saveState();
   renderSetup();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCOREBOARD SHEET
+// ═══════════════════════════════════════════════════════════
+function openScoreboard() {
+  if (!state.game) return;
+  // Always render fresh so the sheet reflects the latest round
+  renderScoreTable();
+
+  const hasRounds = state.game.scores.length > 0;
+  const table = document.querySelector('#scoreboard-overlay .card');
+  const empty = document.getElementById('scoreboard-empty');
+  if (table) table.style.display = hasRounds ? 'block' : 'none';
+  if (empty) {
+    empty.style.display   = hasRounds ? 'none' : 'block';
+    empty.textContent     = t('scoreboardEmpty');
+  }
+  document.getElementById('scoreboard-title-text').textContent = t('scoreboardTitle');
+
+  document.getElementById('scoreboard-overlay').classList.add('open');
+}
+function closeScoreboard() {
+  document.getElementById('scoreboard-overlay').classList.remove('open');
+}
+function closeScoreboardOnOverlay(e) {
+  if (e.target === document.getElementById('scoreboard-overlay')) closeScoreboard();
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -771,6 +771,14 @@
     color: var(--md-primary);
   }
 
+  /* ── Game action buttons ── */
+  #game-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .secondary-action { min-height: 46px; font-size: 1.05rem; }
+
   /* ── Scroll area for score table ── */
   .score-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -981,6 +989,9 @@
       <p id="validation-banner-text">Fehler</p>
     </div>
 
+    <!-- Action buttons (directly under the input, above the score table) -->
+    <div id="game-actions"></div>
+
     <!-- Score table -->
     <span class="section-title">Punktestand</span>
     <div class="card score-scroll">
@@ -989,9 +1000,6 @@
         <tbody id="score-table-body"></tbody>
       </table>
     </div>
-
-    <!-- Action buttons -->
-    <div id="game-actions"></div>
   </div>
 
   <!-- ══════════════════════════════════════════
@@ -1107,6 +1115,10 @@ const TRANSLATIONS = {
     phaseResult:       '✅ Erzielte Stiche eingeben',
     btnConfirmPredict: 'Vorhersagen bestätigen',
     btnConfirmResult:  'Runde auswerten',
+    btnEditPredict:    'Vorhersagen korrigieren',
+    btnResetResults:   'Eingaben zurücksetzen',
+    toastPredictEdit:  'Vorhersagen können jetzt korrigiert werden',
+    toastResultsReset: 'Eingetragene Stiche zurückgesetzt',
     cardDealer:        'Geber',
     legendPredicted:   'Blau markiert = Vorhersage dieses Spielers',
     dragHint:          'Zum Umsortieren am Griff ziehen',
@@ -1165,6 +1177,10 @@ const TRANSLATIONS = {
     phaseResult:       '✅ Enter Tricks Won',
     btnConfirmPredict: 'Confirm Predictions',
     btnConfirmResult:  'Evaluate Round',
+    btnEditPredict:    'Edit Predictions',
+    btnResetResults:   'Clear Entries',
+    toastPredictEdit:  'You can now correct the predictions',
+    toastResultsReset: 'Entered tricks cleared',
     cardDealer:        'Dealer',
     legendPredicted:   'Blue marker = this player\'s prediction',
     dragHint:          'Drag the handle to reorder',
@@ -1670,12 +1686,62 @@ function renderGame() {
     const validation = getResultValidationError(allSelected);
     showValidationBanner(validation);
     const blocked = !allSelected || !!validation;
+
+    // Has any result been entered yet for this round?
+    const anyResult = state.players.some(p => g.results[p.id] !== null);
+
     actions.innerHTML = `
       <button class="btn btn-filled btn-full" onclick="confirmResults()" ${blocked ? 'disabled' : ''}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         ${t('btnConfirmResult')}
+      </button>
+
+      <!-- Correct predictions: only while nothing has been entered yet -->
+      <button class="btn btn-outlined btn-full secondary-action" id="btn-edit-predictions"
+              onclick="editPredictions()" style="display:${anyResult ? 'none' : 'inline-flex'};">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        ${t('btnEditPredict')}
+      </button>
+
+      <!-- Clear entries: appears once something has been entered, reopens the correction path -->
+      <button class="btn btn-tonal btn-full secondary-action" id="btn-reset-results"
+              onclick="resetResults()" style="display:${anyResult ? 'inline-flex' : 'none'};">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.34"/>
+        </svg>
+        ${t('btnResetResults')}
       </button>`;
   }
+}
+
+// Go back to the prediction phase for the CURRENT round.
+// Predictions are kept so they can be adjusted rather than re-entered.
+function editPredictions() {
+  const g = state.game;
+  if (!g || g.phase !== 'result') return;
+  // Guard: only allowed while no result has been entered
+  if (state.players.some(p => g.results[p.id] !== null)) return;
+
+  g.phase = 'predict';
+  state.players.forEach(p => { g.results[p.id] = null; });
+  showValidationBanner(null);
+  saveState();
+  renderGame();
+  showToast(t('toastPredictEdit'));
+}
+
+// Clear the tricks entered this round, so predictions can be corrected again.
+function resetResults() {
+  const g = state.game;
+  if (!g || g.phase !== 'result') return;
+  state.players.forEach(p => { g.results[p.id] = null; });
+  showValidationBanner(null);
+  saveState();
+  renderGame();
+  showToast(t('toastResultsReset'));
 }
 
 function updateSumBadge() {
@@ -1733,6 +1799,13 @@ function selectTricks(playerId, value) {
     const validation = getResultValidationError(allSelected);
     showValidationBanner(validation);
     if (actionBtn) actionBtn.disabled = !allSelected || !!validation;
+
+    // Once anything is entered, swap "correct predictions" for "clear entries"
+    const anyResult  = state.players.some(p => g.results[p.id] !== null);
+    const editBtn    = document.getElementById('btn-edit-predictions');
+    const resetBtn   = document.getElementById('btn-reset-results');
+    if (editBtn)  editBtn.style.display  = anyResult ? 'none' : 'inline-flex';
+    if (resetBtn) resetBtn.style.display = anyResult ? 'inline-flex' : 'none';
   } else {
     // Predict phase: any sum is legal — no validation, no banner
     showValidationBanner(null);

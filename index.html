@@ -264,6 +264,22 @@
     transition: border-color 0.2s;
   }
   .player-name-input:focus { border-color: var(--md-primary); }
+  .player-name-input::placeholder { color: var(--md-on-surface-variant); opacity: 0.55; font-weight: 500; }
+  /* Empty / whitespace-only name */
+  .player-name-input.invalid { border-bottom-color: var(--md-error); }
+  .player-name-input.invalid:focus { border-bottom-color: var(--md-primary); }
+
+  /* Why the start button is blocked */
+  .setup-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-align: center;
+    font-size: 1.0rem;
+    color: var(--md-on-surface-variant);
+    padding: 2px 8px;
+  }
 
   .player-delete-btn {
     width: 36px; height: 36px;
@@ -1025,6 +1041,8 @@
       <p>Wizard wird mit 3–6 Spielern gespielt. Die Rundenzahl richtet sich nach der Spieleranzahl.</p>
     </div>
 
+    <div class="setup-hint" id="setup-hint" style="display:none;"></div>
+
     <button class="btn btn-filled btn-full" id="start-game-btn" onclick="startGame()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       Spiel starten
@@ -1212,7 +1230,10 @@ const TRANSLATIONS = {
     infoText:          'Wizard wird mit 3–6 Spielern gespielt. Die Rundenzahl richtet sich nach der Spieleranzahl.',
     startGame:         'Spiel starten',
     noPlayersYet:      'Noch keine Spieler. Füge mindestens 3 hinzu.',
-    namePlaceholder:   'Name eingeben',
+    namePlaceholder:   'Spielername',
+    hintNeedPlayers:   (n) => `Noch ${n} Spieler ${n === 1 ? 'fehlt' : 'fehlen'} – mindestens 3 werden benötigt.`,
+    hintNeedNames:     (n) => `Bitte ${n === 1 ? 'noch einen Namen' : `noch ${n} Namen`} eingeben.`,
+    errNoName:         'Bitte für jeden Spieler einen Namen eingeben.',
     defaultPlayerName: 'Spieler',
 
     // Game screen
@@ -1278,7 +1299,10 @@ const TRANSLATIONS = {
     infoText:          'Wizard is played with 3–6 players. The number of rounds depends on the player count.',
     startGame:         'Start Game',
     noPlayersYet:      'No players yet. Add at least 3.',
-    namePlaceholder:   'Enter name',
+    namePlaceholder:   'Player name',
+    hintNeedPlayers:   (n) => `${n} more player${n === 1 ? '' : 's'} needed – at least 3 required.`,
+    hintNeedNames:     (n) => `Please enter ${n === 1 ? 'one more name' : `${n} more names`}.`,
+    errNoName:         'Please enter a name for every player.',
     defaultPlayerName: 'Player',
 
     roundLabel:        'Round',
@@ -1496,8 +1520,10 @@ function renderSetup() {
           </svg>
         </div>
         <div class="player-color-dot" style="background:${p.color}">${playerInitials(p.name)}</div>
-        <input class="player-name-input" type="text" value="${escHtml(p.name)}" maxlength="18"
+        <input class="player-name-input${isValidName(p.name) ? '' : ' invalid'}" type="text"
+          value="${escHtml(p.name)}" maxlength="18"
           placeholder="${t('namePlaceholder')}"
+          autocomplete="off" autocorrect="off" spellcheck="false"
           onchange="renamePlayer('${p.id}', this.value)"
           oninput="renamePlayer('${p.id}', this.value)">
         <button class="player-delete-btn" onclick="deletePlayer('${p.id}')" aria-label="delete">
@@ -1520,7 +1546,31 @@ function renderSetup() {
   }
 
   addBtn.style.display = state.players.length >= 6 ? 'none' : 'flex';
-  startBtn.disabled = state.players.length < 3;
+  updateStartButton();
+}
+
+// Enable "start game" only with >=3 players AND a name for every one of them.
+// Also explains WHY it is blocked, instead of leaving a dead button.
+function updateStartButton() {
+  const startBtn = document.getElementById('start-game-btn');
+  const hintEl   = document.getElementById('setup-hint');
+  if (!startBtn) return;
+
+  const enoughPlayers = state.players.length >= 3;
+  const namesOk       = allNamesValid();
+  startBtn.disabled   = !enoughPlayers || !namesOk;
+
+  if (!hintEl) return;
+  if (!enoughPlayers) {
+    hintEl.textContent   = t('hintNeedPlayers', 3 - state.players.length);
+    hintEl.style.display = 'flex';
+  } else if (!namesOk) {
+    const missing = state.players.filter(p => !isValidName(p.name)).length;
+    hintEl.textContent   = t('hintNeedNames', missing);
+    hintEl.style.display = 'flex';
+  } else {
+    hintEl.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1621,9 +1671,13 @@ function onDragEnd(e) {
 function addPlayer() {
   if (state.players.length >= 6) return;
   const id = 'p_' + Date.now();
-  state.players.push({ id, name: `${t('defaultPlayerName')} ${state.players.length + 1}`, color: nextColor() });
+  state.players.push({ id, name: '', color: nextColor() });   // empty on purpose
   saveState();
   renderSetup();
+  // Put the cursor straight into the new field so the user can just type
+  const inputs = document.querySelectorAll('#player-list-container .player-name-input');
+  const last = inputs[inputs.length - 1];
+  if (last) last.focus();
 }
 
 function deletePlayer(id) {
@@ -1635,25 +1689,30 @@ function deletePlayer(id) {
 
 function renamePlayer(id, name) {
   const p = playerById(id);
-  if (p) {
-    p.name = name || t('defaultPlayerName');
-    // update initials dot live
-    const items = document.querySelectorAll('.player-item');
-    items.forEach(item => {
-      const inp = item.querySelector('input');
-      const dot = item.querySelector('.player-color-dot');
-      if (inp && dot && inp.value === name && dot.style.background === hexToRgb(p.color)) {
-        dot.textContent = playerInitials(name);
-      }
-    });
-    // simpler: just update all dots
-    const allItems = document.querySelectorAll('.player-item');
-    state.players.forEach((pl, i) => {
-      const dot = allItems[i]?.querySelector('.player-color-dot');
-      if (dot) dot.textContent = playerInitials(pl.name);
-    });
-    saveState();
-  }
+  if (!p) return;
+
+  p.name = name;   // may be empty – validation happens on the start button
+
+  // Keep the colour dot's initial in sync
+  const allItems = document.querySelectorAll('#player-list-container .player-item');
+  state.players.forEach((pl, i) => {
+    const dot = allItems[i]?.querySelector('.player-color-dot');
+    if (dot) dot.textContent = playerInitials(pl.name);
+    const inp = allItems[i]?.querySelector('.player-name-input');
+    if (inp) inp.classList.toggle('invalid', !isValidName(pl.name));
+  });
+
+  saveState();
+  updateStartButton();
+}
+
+// A name counts as valid once it has at least one non-whitespace character
+function isValidName(name) {
+  return (name || '').trim().length >= 1;
+}
+
+function allNamesValid() {
+  return state.players.every(p => isValidName(p.name));
 }
 
 function hexToRgb(hex) {
@@ -1667,6 +1726,17 @@ function hexToRgb(hex) {
 function startGame() {
   const n = state.players.length;
   if (n < 3) { showToast(t('toastNeedPlayers')); return; }
+
+  // Every player needs a name
+  if (!allNamesValid()) {
+    showToast(t('errNoName'));
+    const bad = state.players.findIndex(p => !isValidName(p.name));
+    const inputs = document.querySelectorAll('#player-list-container .player-name-input');
+    if (inputs[bad]) inputs[bad].focus();
+    return;
+  }
+  // Trim stray whitespace before locking the names in
+  state.players.forEach(p => { p.name = p.name.trim(); });
 
   const totalRounds = MAX_ROUNDS[n];
   const predictions = {};
